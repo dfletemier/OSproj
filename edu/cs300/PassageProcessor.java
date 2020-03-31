@@ -13,11 +13,10 @@ public class PassageProcessor{
    static {
         System.loadLibrary("system5msg");
     }
-    @SuppressWarnings({"rawtypes", "unchecked"})
+
+    /*Gets all words out of the given file and returns an arraylist of these words*/ 
     public static ArrayList<String> getWords(File fileNm) 
     {
-       // System.out.println((fileNm));
-        //File theFile = new File("/home/dafletemier/dafletemier/"+fileNm);
         ArrayList<String> words = new ArrayList<String>();
         try{
         Scanner in = new Scanner(new BufferedReader(new FileReader(fileNm)));
@@ -34,7 +33,7 @@ public class PassageProcessor{
         in.close();
         }
         catch(Exception e){
-            System.err.format("Exception occurred trying to read words from file.");
+            System.err.println("Exception occurred trying to read words from file.");
             System.exit(0);
         }
         return words;
@@ -49,6 +48,7 @@ public class PassageProcessor{
       BufferedReader reader = new BufferedReader(new FileReader("/home/dafletemier/dafletemier/passages.txt"));
       //BufferedReader reader = new BufferedReader(new FileReader("/home/dafletemier/dafletemier/passages.txt"));
       String line;
+      //Here we read each line of passages.txt for a name of a text file. Then we add it to a list of files and a list of file names
       while ((line = reader.readLine()) != null)
       {
             File theFile = new File("/home/dafletemier/dafletemier/"+line);
@@ -57,27 +57,27 @@ public class PassageProcessor{
             fileNms.add(line);
             }
             else{
-                System.err.format("File "+line+" doesn't exist\n");
+                System.err.println("File "+line+" doesn't exist");
             }
       }
       reader.close();
     }
     catch (Exception e)
     {
-      System.err.format("Exception occurred trying to read passages.txt");
+      System.err.println("Exception occurred trying to read passages.txt");
       e.printStackTrace();
     }
 
     if(theFiles.size()==0) //print error messag and exit if no files provided.
     {
-        System.err.format("No passages were provided. Exiting\n");
+        System.err.println("No passages were provided. Exiting");
         System.exit(0);
     }
 
     /*for (int counter = 0; counter < fileNms.size(); counter++) { 		      
         System.out.println(fileNms.get(counter)); 		
     }   	*/
-
+    //Here we create an an array list of array lists that contains all the words in each passage
     ArrayList<ArrayList<String>> samples = new ArrayList<ArrayList<String>>();  
     for(int i=0; i<fileNms.size(); i++){
         samples.add(getWords(theFiles.get(i)));
@@ -88,7 +88,7 @@ public class PassageProcessor{
     for (int i=0;i<fileNms.size();i++) {
         workers[i] = new ArrayBlockingQueue(10);
      }
-
+     //starting all threads and adding each worker to a list of workers
      ArrayList<Worker> workersList = new ArrayList<Worker>();
      for (int i=0;i<fileNms.size();i++) {
         Worker aWorker = new Worker(samples.get(i), fileNms.get(i), i, workers[i], resultsOutputArray);
@@ -96,6 +96,7 @@ public class PassageProcessor{
         workersList.add(aWorker);
      }
      while(true){
+         //Read a prefix request message and put it on each worker. 
         SearchRequest aRequest = new MessageJNI().readPrefixRequestMsg();
         //SearchRequest has requestID and prefix
         try {
@@ -104,6 +105,7 @@ public class PassageProcessor{
             workers[i].put(aRequest);
             }
           } catch (InterruptedException e) {};
+          //If the request isn't telling PP to terminate, write the response messages by taking results off of the Array blocking queue
           if(aRequest.requestID != 0){
           int counter=0;
           while (counter<fileNms.size()){
@@ -114,6 +116,7 @@ public class PassageProcessor{
             } catch (InterruptedException e) {};
           }
         }
+        //If the SM told PP to terminate, join all threads and terminate.
         else {
         try{
         for(int i = 0; i < workersList.size(); i++)
@@ -124,7 +127,7 @@ public class PassageProcessor{
         System.exit(0);
         }
         catch(Exception ex){
-            System.out.println("Caught exception" +ex);
+            System.err.println("Caught exception" +ex);
         }
     }
        

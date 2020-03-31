@@ -3,7 +3,6 @@ import CtCILibrary.*;
 import java.util.concurrent.*;
 import java.util.ArrayList;
 class Worker extends Thread{
-  @SuppressWarnings({"rawtypes", "unchecked"})
   Trie textTrieTree;
   ArrayBlockingQueue prefixRequestArray;
   ArrayBlockingQueue resultsOutputArray;
@@ -23,14 +22,15 @@ class Worker extends Thread{
   //we might need to parse from the results output array
 
   public void run() {
-    System.out.println("Worker-"+this.num+" ("+this.passageName+") thread started ...");
+    System.out.print("Worker-"+this.num+" ("+this.passageName+") thread started ...\n");
     while (true){
       try {
         SearchRequest req=(SearchRequest)this.prefixRequestArray.take();
         //break out of the while loop to escape run (so we can join threads) if request id is 0
         if(req.requestID == 0) break; 
+        //find the longest word and put details back on array blocking queue.
         String prefix = req.prefix;
-        String lngest = this.textTrieTree.longestWord(prefix);
+        String lngest = this.textTrieTree.longestWord(prefix); 
         int fnd;
         if(lngest != null) fnd =1;
         else fnd = 0;
@@ -46,7 +46,7 @@ class Worker extends Thread{
          
         }
       } catch(InterruptedException e){
-        System.out.println(e.getMessage());
+        System.err.println(e.getMessage());
       }
     }
   }

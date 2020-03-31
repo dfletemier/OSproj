@@ -11,6 +11,7 @@
 #include<unistd.h>
 #include<signal.h>
 #include<semaphore.h>
+#include<ctype.h>
 
 #ifndef mac
 size_t                  /* O - Length of string */
@@ -49,12 +50,14 @@ int passageCount = 0;
 int prefixCount;
 char **prefixes; 
 
+/*This handler is used when we haven't gotten a single response*/
 void other_handler(){
     for(int i=0; i<prefixCount; i++){
         printf("%s - pending\n", prefixes[i]);
     }
 }
-
+/*This handler uses countMutex so that totalCount won't be updated at the same time. ait determines the amount of responses remaining based on the number re
+ceived and the number of passages/prefixes there are */
 void sig_handler(int signo)
 {
   if (signo == SIGINT){
@@ -92,18 +95,22 @@ int main(int argc, char**argv)
     size_t buf_length;
     int ret;
 
+    //initializing mutex
     sem_init(&countMutex, 1, 1); 
 
-    if (argc <= 2 || strlen(argv[2]) <2) { //need to update so it checks all of them
-        printf("Error: please provide sleep time and prefix of at least two characters for search\n");
-        printf("Usage: %s <prefix>\n",argv[0]);
+    if (argc <= 2 || strlen(argv[2]) <2 ) { 
+       fprintf(stderr,"Error: please provide sleep time and prefix of at least two characters for search\n");
+        fprintf(stderr, "Usage: %s <prefix>\n",argv[0]);
         exit(-1);
     }
     prefixCount = argc-2; 
     prefixes = (char **)malloc(prefixCount * sizeof(char *)); 
     for (int i=0; i<prefixCount; i++) {
+        for(int j = 0; j < strlen(argv[i+2]); j++){
+            argv[i+2][j] = tolower(argv[i+2][j]); //must make sure that the prefix is lowercase. This is the best way in C.
+        }
          prefixes[i] = (char *)malloc(strlen(argv[i+2])* sizeof(char)); 
-          strcpy(prefixes[i], argv[i+2]);
+        strcpy(prefixes[i], argv[i+2]);
     }
 
    key = ftok(CRIMSON_ID,QUEUE_NUMBER);
@@ -113,12 +120,11 @@ int main(int argc, char**argv)
         perror("(msgget)");
         fprintf(stderr, "Error msgget: %s\n", strerror( errnum ));
     }
-    /*else
-        fprintf(stderr, "msgget: msgget succeeded: msgqid = %d\n", msqid);*/
     
+    //Send prefix and receive responses for each prefix
     for(int i = 2; i < argc; i++){
          if (strlen(argv[i]) <= 2 || strlen(argv[i]) > 20) { 
-        printf("Error: prefix length invalid.. skipping %s\n",argv[i]); 
+        fprintf(stderr, "Error: prefix length invalid.. skipping %s\n",argv[i]); 
         }
     else{
      // We'll send message type 1
@@ -136,11 +142,12 @@ int main(int argc, char**argv)
         exit(1);
     }
     else
-        fprintf(stderr,"Message(%d): \"%s\" Sent (%d bytes)\n", sbuf.id, sbuf.prefix,(int)buf_length);
+        printf("\nMessage(%d): \"%s\" Sent (%d bytes)\n\n", sbuf.id, sbuf.prefix,(int)buf_length);
     
     int counter = 0;
-    //String theResults = "";
+    
     response_buf *results;
+    //get results and store them in an array of response bufs for each of the passages.
     do{
     do {
       ret = msgrcv(msqid, &rbuf, sizeof(response_buf), 2, 0);//receive type 2 message
@@ -162,12 +169,10 @@ int main(int argc, char**argv)
         sem_wait(&countMutex);
         totalCount++;
         sem_post(&countMutex);
-        //remove this sleep. Testing to see if sig handler works.
-      //  printf("%d\n",rbuf.index);
-       // sleep(3); 
+       
     } while(counter < passageCount);
-    //Print report here.
-    printf("Report \"%s\":\n", sbuf.prefix);
+    //Print report now that we have received all of the responses
+    printf("Report \"%s\"\n", sbuf.prefix);
     for(int j = 0; j<passageCount; j++){
         response_buf theBuf = results[j];
         if(theBuf.present ==1)
@@ -177,7 +182,7 @@ int main(int argc, char**argv)
     }
     
     free(results);
-    
+    //sleep if we aren't on the last prefix.
     if(i != argc-1){
         sleep(strtol(argv[1], NULL, 10));
     }
@@ -202,10 +207,9 @@ int main(int argc, char**argv)
         exit(1);
     }
      else
-        fprintf(stderr,"Message(%d): \"%s\" Sent (%d bytes)\n", sbuf.id, sbuf.prefix,(int)buf_length);
+        printf("\nMessage(%d): \"%s\" Sent (%d bytes)\n\n", sbuf.id, sbuf.prefix,(int)buf_length);
 
-    printf("Exiting...\n");
+    printf("Exiting...\n\n");
     exit(0);
-
 
 }

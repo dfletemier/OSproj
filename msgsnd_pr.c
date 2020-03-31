@@ -7,6 +7,7 @@
 #include <errno.h>
 #include "longest_word_search.h"
 #include "queue_ids.h"
+#ifndef mac
 size_t                  /* O - Length of string */
 strlcpy(char       *dst,        /* O - Destination string */
         const char *src,      /* I - Source string */
@@ -35,6 +36,7 @@ strlcpy(char       *dst,        /* O - Destination string */
 
     return (srclen);
 }
+#endif
 
 int main(int argc, char**argv)
 {
@@ -63,7 +65,7 @@ int main(int argc, char**argv)
     // We'll send message type 1
     sbuf.mtype = 1;
     strlcpy(sbuf.prefix,argv[1],WORD_LENGTH);
-    sbuf.id=0;
+    sbuf.id=1;
     buf_length = strlen(sbuf.prefix) + sizeof(int)+1;//struct size without long int type
 
     // Send a message.

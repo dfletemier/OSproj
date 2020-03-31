@@ -1,41 +1,54 @@
 package edu.cs300;
 import CtCILibrary.*;
 import java.util.concurrent.*;
-
+import java.util.ArrayList;
 class Worker extends Thread{
-
+  @SuppressWarnings({"rawtypes", "unchecked"})
   Trie textTrieTree;
   ArrayBlockingQueue prefixRequestArray;
   ArrayBlockingQueue resultsOutputArray;
-  int id;
+  String id;
+  int num;
+  int numPassages;
   String passageName;
 
-  public Worker(String[] words,int id,ArrayBlockingQueue prefix, ArrayBlockingQueue results){
+  public Worker(ArrayList<String> words,String id, int theID,ArrayBlockingQueue prefix, ArrayBlockingQueue results){
     this.textTrieTree=new Trie(words);
     this.prefixRequestArray=prefix;
     this.resultsOutputArray=results;
     this.id=id;
-    this.passageName="Passage-"+Integer.toString(id)+".txt";//put name of passage here
+    this.num = theID; 
+    this.passageName=id;//put name of passage here
   }
+  //we might need to parse from the results output array
 
   public void run() {
-    System.out.println("Worker-"+this.id+" ("+this.passageName+") thread started ...");
-    //while (true){
+    System.out.println("Worker-"+this.num+" ("+this.passageName+") thread started ...");
+    while (true){
       try {
-        String prefix=(String)this.prefixRequestArray.take();
-        boolean found = this.textTrieTree.contains(prefix);
-        
-        if (!found){
-          //System.out.println("Worker-"+this.id+" "+req.requestID+":"+ prefix+" ==> not found ");
-          resultsOutputArray.put(passageName+":"+prefix+" not found");
+        SearchRequest req=(SearchRequest)this.prefixRequestArray.take();
+        //break out of the while loop to escape run (so we can join threads) if request id is 0
+        if(req.requestID == 0) break; 
+        String prefix = req.prefix;
+        String lngest = this.textTrieTree.longestWord(prefix);
+        int fnd;
+        if(lngest != null) fnd =1;
+        else fnd = 0;
+        if (fnd == 0){
+          System.out.print("Worker-"+this.num+" "+req.requestID+":"+ prefix+" ==> not found \n");
+          
+          LWResponse response = new LWResponse(req.requestID, prefix, this.num, this.passageName, "----", fnd);
+          this.resultsOutputArray.add(response);
         } else{
-          //System.out.println("Worker-"+this.id+" "+req.requestID+":"+ prefix+" ==> "+word);
-          resultsOutputArray.put(passageName+":"+prefix+" found");
+          System.out.print("Worker-"+this.num+" "+req.requestID+":"+ prefix+" ==> "+lngest+"\n");
+          LWResponse response = new LWResponse(req.requestID, prefix, this.num, this.passageName, lngest, fnd);
+          this.resultsOutputArray.add(response);
+         
         }
       } catch(InterruptedException e){
         System.out.println(e.getMessage());
       }
-    //}
+    }
   }
 
 }

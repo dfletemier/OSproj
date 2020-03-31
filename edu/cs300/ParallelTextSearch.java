@@ -1,4 +1,4 @@
-package edu.cs300;
+/*package edu.cs300;
 import CtCILibrary.*;
 import java.util.concurrent.*;
 
@@ -6,7 +6,7 @@ public class ParallelTextSearch{
     
   public static void main(String[] args){
 
-    int treeCount=2;
+   int treeCount=2;
     String[][]  samples = {{"conspicuous", "parallel", "withering"},{"coping", "figure", "parachute"}};
     ArrayBlockingQueue[] workers = new ArrayBlockingQueue[treeCount];
     ArrayBlockingQueue resultsOutputArray=new ArrayBlockingQueue(treeCount*10);
@@ -40,3 +40,4 @@ public class ParallelTextSearch{
   }
 
 }
+*/

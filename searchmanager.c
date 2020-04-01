@@ -210,6 +210,7 @@ int main(int argc, char**argv)
         printf("\nMessage(%d): \"%s\" Sent (%d bytes)\n\n", sbuf.id, sbuf.prefix,(int)buf_length);
 
     printf("Exiting...\n\n");
+    sem_destroy(&countMutex);
     exit(0);
 
 }
